@@ -1,0 +1,68 @@
+class BlockSwapNeighbourhood(Neighbourhood):
+    """
+    A roster r' is a neighbour of a roster r
+    if it can be obtained by swapping a block of consecutive days between two nurses,
+    starting at the same day and of the same length (between 2 to 4 days).
+    """
+    # Listen if you are swapping, check if the next block also has the shift type for that particular nurse, Ordered Shift Swap
+    def __init__(self, prob) -> None:
+        self._prob = prob
+
+    def neighbours(self, roster):
+        result = []
+
+        # Convert the roster into dictionary format for easier block-based manipulation
+        roster_dicts = []
+        for nurse in roster:
+            roster_dict = convert_string_to_dict(nurse)
+            roster_dicts.append(roster_dict)
+
+        # Iterate over all pairs of nurses
+        for i in range(self._prob._nb_nurses):
+            for j in range(i + 1, self._prob._nb_nurses):
+                # Iterate over the blocks of nurse i
+                for day_i, block_i in roster_dicts[i].items():
+                    block_length_i = block_i['length']
+                    shift_type_i = block_i['shift']
+
+                    # Only consider work shifts (A, P, N)
+                    if shift_type_i not in ['A', 'P', 'N']:
+                        continue
+
+                    # Ensure block lengths are between 2 and 4 days
+                    if not (2 <= block_length_i <= 4):
+                        continue
+
+                    # Find a matching block in nurse j with the same block length, start day, and different shift
+                    for day_j, block_j in roster_dicts[j].items():
+                        block_length_j = block_j['length']
+                        shift_type_j = block_j['shift']
+
+                        # Check if blocks start on the same day, have the same length, and are workdays
+                        if day_i == day_j and block_length_i == block_length_j and shift_type_j in ['A', 'P',
+                                                                                                    'N']:
+                            # Convert the dictionaries back to strings
+                            new_roster_i = convert_dict_to_string(roster_dicts[i])
+                            temp = new_roster_i
+                            new_roster_j = convert_dict_to_string(roster_dicts[j])
+
+                            # Perform the swap directly on the string representations
+                            temp = new_roster_i[:day_i] + new_roster_j[
+                                                                  day_j:day_j + block_length_j] + new_roster_i[
+                                                                                                  day_i + block_length_i:]
+                            new_roster_j = new_roster_j[:day_j] + new_roster_i[
+                                                                  day_i:day_i + block_length_i] + new_roster_j[
+                                                                                                  day_j + block_length_j:]
+                            new_roster_i = temp
+
+                            # Create a new roster by replacing the modified nurses
+                            new_roster = roster.copy()
+                            new_roster[i] = new_roster_i
+                            new_roster[j] = new_roster_j
+                            #print(new_roster)
+                            result.append(new_roster)
+                            # Check if the new roster is feasible and append to results if it is
+
+
+
+        return result

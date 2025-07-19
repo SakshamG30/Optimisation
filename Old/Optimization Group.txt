@@ -1,0 +1,22 @@
+Hi teaching team,
+
+I, Saksham Gupta (u7726995), and I want to team up with Tohfa (uXXXXXXX) and Arslan (uXXXXXXX) to do the seminar in a group.
+
+Our chosen seminar topic is Multi-Agent Path Planning.
+
+We plan to cover four parts in the seminar:
+
+Introduction to pathfinding (referencing paper 1).
+Advanced path planning techniques for dynamic environments (referencing paper 2).
+Application of path planning in real-time strategy games (referencing paper 3).
+Collaborative and distributed path planning for multi-agent systems (referencing paper 4).
+
+Paper List:
+
+Silver, D. (2005). "Cooperative Pathfinding." AIIDE. Available at: https://www.davidsilver.uk/wp-content/uploads/2020/03/coop-path-AIIDE.pdf
+
+Wagner, G., & Choset, H. (2015). "Subdimensional Expansion for Multirobot Path Planning." Artificial Intelligence, 219, 1-24. Available at: https://doi.org/10.1016/j.artint.2014.11.009
+
+Barraquand, J., & Latombe, J. C. (2010). "Humanoid Actor Path Planning in RTS Games." In M. Donner (Ed.), Recent Advances in Gaming (pp. 523-538). Springer, Berlin, Heidelberg. Available at: https://link.springer.com/chapter/10.1007/978-3-642-16958-8_38
+
+Schwarting, W., Alonso-Mora, J., & Rus, D. (2018). "Planning and Decision-Making for Autonomous Vehicles." Annual Review of Control, Robotics, and Autonomous Systems, 1(1), 187-210. Available at: https://doi.org/10.1146/annurev-control-060117-105157
