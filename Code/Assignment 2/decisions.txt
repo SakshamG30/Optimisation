@@ -1,0 +1,312 @@
+Author : Saksham Gupta (u7726995)
+
+Note on Implementation and Documentation:
+
+The entire code implementation for this assignment, including all algorithmic designs and method developments, was independently written by me. 
+I based my approach and structure primarily on the concepts and techniques presented in the Metaheuristic course slides. 
+To enhance the quality and clarity of the documentation, I used ChatGPT as a tool to help refine and polish the comments and explanations,
+ensuring they were comprehensive and well-articulated. While there was no word limit, I aimed to keep my explanations in decisions.txt concise, 
+without sacrificing any meaningful details or clarity.
+
+
+=== PART 1
+
+Solution Overview: Initial Problem Understanding and Constraints
+
+The nurse scheduling problem required creating feasible schedules for 16 nurses over a 21-day period, with constraints including:
+1. **Shift and Off-Duty Day Distribution**: Each nurse works exactly 15 days with 6 off-duty days. Off-duty blocks are capped at 3 consecutive days.
+2. **Consecutive Day Requirements**: Work shifts form blocks of 2-4 consecutive days, with each nurse working at least 3 but no more than 7 consecutive days.
+3. **Circular Continuity**: The 21-day schedule wraps around, requiring continuity between the last and first days.
+4. **Weekend Off-Duty**: Each nurse must have at least one off-duty day on weekend days (5, 6, 12, 13, 19, 20).
+
+I approached the solution in two phases: generating feasible individual schedules (Solution 1) and combining these into a full roster that met group constraints (Solution 2).
+
+
+Solution 1: Generating Feasible Individual Nurse Schedules
+
+The primary role of `solution1.py` is to create individual schedules that satisfy all personal constraints except for C7 (minimum nurses per shift). This approach allows each schedule to be treated independently, streamlining the assembly of a full roster.
+
+1. **Generating Work Blocks (generate_work_blocks)**: I used `generate_work_blocks` to create blocks of work shifts (morning, afternoon, and night), strictly following an A → N → P → A rotation to meet the 
+required consistency. Each block adhered to a size of 2-4 shifts, ensuring 15 workdays across the schedule.
+
+2. **Inserting Off-Duty Days (insert_off_duty_blocks)**: After generating work blocks, `insert_off_duty_blocks` placed off-duty days while ensuring each schedule had exactly six off-duty days, with at least one off-duty day falling on a weekend. This function also enforced the maximum of 3 consecutive off-duty days and was structured to prevent disrupting consecutive workday blocks.
+
+3. **Circular and Consecutive Constraint Enforcement**: Given the circular nature of the schedule, I added specific adjustments to validate continuity between the last and first days. This required functions like `check_consecutive_workdays`, `check_and_adjust_consecutive_workdays`, and `handle_circular_consecutive_workdays` to address any block length violations, ensuring circular consistency across the 21 days.
+
+4. **Weekend Off-Duty Validation (has_off_duty_on_weekend)**: To meet the requirement of at least one weekend off-duty day, I used `has_off_duty_on_weekend` to verify each generated schedule. If this condition wasn’t met, functions like `find_replaceable_weekend_index` and `replace_with_off_duty` adjusted schedules by replacing shifts with off-duty days on weekends, ensuring compliance.
+
+Solution 1’s role was to generate schedules that met all individual constraints, allowing Solution 2 to focus on group validation.
+
+
+
+Solution 2 Overview: Validation, Greedy Assignment, and Roster Completion
+
+Solution 2 is where the full 16-nurse roster was assembled and validated against group constraints, especially Constraint C7, which requires minimum staffing levels per shift across all 21 days.
+
+1. **Validation and Sampling in `validate_and_save`**:
+   This function serves as the heart of Solution 2, coordinating the generation, validation, and assembly of feasible nurse schedules. I used a random sampling approach, generating individual schedules and validating each one against the constraints established in Solution 1. Only schedules that passed these validations were stored for further grouping and selection.
+
+2. **Greedy Assignment**:
+   The Greedy Method prioritized schedules based on their ability to meet minimum staffing levels for each shift. By prioritizing schedules that filled under-staffed shifts first, this method ensured efficient coverage across the 21 days, effectively addressing C7 requirements.
+
+3. **Weighted Contribution Calculation**:
+   Within the Greedy Method, `calculate_weighted_contribution` evaluated how each nurse’s schedule filled the most under-covered shifts. Nurses with schedules that contributed most to high-need shifts were selected first, ensuring balanced coverage across the roster.
+   
+4. **Group Validation and Reset Handling**
+	Within validate_and_save, if a batch of validated individual schedules fails the collective constraint C7, it’s reset and retried. This is done up to five times per batch, to avoid excessive retries and computational overload, efficiently iterating toward a feasible solution.
+
+
+
+Main File: create_solution.py
+
+This main file coordinates the entire nurse scheduling solution by taking a random seed as input 
+to generate and validate a complete nurse roster. The process includes:
+
+1. **Generating Feasible Schedules**:
+   - The `create_solution` function uses a specified seed to produce varied nurse schedules.
+   - If a feasible schedule isn't found on the first try, it increments the number of combinations 
+     to explore until a valid solution is reached.
+
+2. **Feasibility Check**:
+   - Once a full roster is generated, it undergoes a final feasibility check with `is_feasible`
+     to ensure it meets all constraints.
+
+Once validated, the generated roster is saved for review.
+
+---
+
+Results and Runtime Performance
+
+Running the scheduling function with different seed values produced varied results. With no argument, it used the default seed (0), a valid 16-nurse roster was generated in 75.6 seconds. Additional trials with other seeds, such as:
+- Seed 100 completed in 6.4 seconds.
+- Seed 42000 completed in 16.93 seconds.
+- Seed 24000 completed in 3.77 seconds.
+- seed 123142 completed in 14.23 seconds.
+
+For tutor review, I manually renamed and organized these files into the folder Rosters/4.1, with each file name reflecting its seed number, allowing tutors to easily access and generate those specific rosters 
+again by their seed number. This comprehensive approach, combining Solution1 for individual schedules with Solution2’s Greedy Method for collective validation, yielded 
+an efficient and flexible solution to create balanced, compliant nurse rosters.
+
+
+=== PART 2
+
+In tackling the nurse rostering problem, each neighborhood was developed with specific strategies to balance exploration and adhere to the scheduling constraints.
+
+## Why 7 Neighbourhoods Were Used
+The problem requirements suggested using at least 4 neighborhoods, but 7 were implemented to enhance the robustness of the solution search. In practice, adding more neighborhoods increases the search depth and diversity of the solution space, which is especially useful in complex problems like nurse rostering, where feasible solutions are tightly constrained by multiple factors.
+
+Through repeated testing and observation, each of the 7 neighborhoods contributed uniquely, allowing the algorithm to overcome various forms of stagnation that would have limited a smaller set. 
+
+While adding neighborhoods increased iteration times, each neighborhood played a role in escaping local optima, preventing the search from getting stuck. Debugging outputs consistently showed that solutions often improved after applying certain neighborhoods that introduced the right type of variation for the situation, underscoring the importance of each neighborhood’s unique adjustment pattern.
+
+Using a diverse set of neighborhoods allowed for a more balanced Variable Neighborhood Search (VNS) approach, ensuring that the algorithm had multiple ways to explore the search space thoroughly, avoid repetitive patterns, and discover new feasible configurations.
+
+Neighborhood 1: Alternating Shift and Reverse Block Neighborhood
+
+- Implementation Process: This neighborhood alternates between shift and reverse transformations within blocks, aiming to create unique variations that still maintain balance.
+
+    - Development Process:
+        1. Blocks of 2-4 consecutive days were chosen in each nurse’s schedule.
+        2. For even-indexed days within each block, I shifted the first shift to the end. For odd-indexed days, shifts were reversed.
+        3. Each modified block was checked to ensure it met the constraints.
+
+    - Challenges and Failed Attempts:
+        - Using only shifts within blocks kept changes too similar, trapping the search in local minima.
+        - Block lengths over 4 days often became infeasible, so I limited to 4 days.
+
+    - Strengths and Reason for Inclusion:
+        - Diverse Configurations: Alternating shift and reverse patterns create more variety in roster configurations.
+        - Helps Escape Local Minima: This neighborhood’s mix of shifting and reversing disrupts patterns just enough to find new solutions.
+        - Balanced Exploration: Works well in early VNS stages to provide variety while keeping the structure.
+
+Neighborhood 2: Randomized Block Swap and Reverse Neighborhood
+
+- Implementation Process: Designed to apply a mix of shift, reverse, or swap within a block, introducing more diversity in the neighboring solutions.
+
+    - Development Process:
+        1. Blocks of 2-4 days were identified in each nurse’s schedule.
+        2. For each block, randomly applied one of three operations: shift, reverse, or swap.
+           - Shift: Rotate the block forward by one position.
+           - Reverse: Flip the order of shifts in the block.
+           - Swap: Swap the first and last shifts within the block.
+        3. Each result was tested for feasibility before adding to the neighborhood list.
+
+    - Challenges and Failed Attempts:
+        - Relying on just shifts within blocks limited the variation.
+        - Adding two more operations, reverse & swap, while randomly choosing that operation, improved outcomes by offering broader diversity in configurations.
+
+    - Strengths and Reason for Inclusion:
+        - Versatile Transformations: This neighborhood's mix of shifting, reversing, and swapping allows for diverse transformations within each block, helping escape repetitive patterns without drastic differences.
+        - Effective for Breaking Local Minima: Randomly applying these operations enables flexible adjustments, making it particularly useful for escaping local minima in the search space.
+        - Effective for Large Search Space: The varied operations allow deeper exploration and more diverse solutions.
+        - Balance of Structure and Diversity: By maintaining block-based operations, the neighborhood balances structure and exploration. While it introduces randomness, it does so in a way that retains recognizable scheduling structures.
+
+Neighborhood 3: Shift Block Reverse Neighborhood
+
+- Implementation Process: Reverses blocks of shifts within a nurse’s schedule, changing the order without altering shift types. This keeps balance but adds variation.
+
+    - Development Process:
+        1. Selected blocks of 2-4 days in each nurse’s schedule.
+        2. Reversed the order of shifts within each block to create a new sequence.
+        3. Checked each result for feasibility.
+
+    - Challenges and Failed Attempts:
+        - Partial reversals didn’t add enough variety. Full-block reversals proved more effective.
+        - Performing reversal on block lengths over 4 days often lead to infeasibility, so I capped at 4 days.
+
+    - Strengths and Reason for Inclusion:
+        - Good for Local Refinement: Block reversals add subtle changes, which are useful for exploring solutions near local optima.
+        - Maintains Feasibility: Changing the order within blocks without altering shift types keeps configurations and constraints stable and feasible.
+        - Adds Balanced Variation: Helps refine solutions without introducing drastic changes, suitable for mid-to-late search stages.
+        - Controlled Variation through Focused Reversals: Focusing solely on reversals provides a method of controlled variation, as it doesn’t introduce drastic shifts in patterns but instead reorders them. This allows the algorithm to explore diverse arrangements within blocks, capturing alternative schedules that may be beneficial without deviating too far from the established roster.
+
+Neighborhood 4: Cycle Shifts Neighborhood
+
+- Implementation Process: Applies cyclic shifts to entire schedules, either forward or backward, creating significant structural changes across the roster.
+
+    - Development Process:
+        1. Defined rotation shifts from 1-10 days, moving schedules forward and backward.
+        2. Each shifted configuration was tested for feasibility.
+
+    - Challenges and Failed Attempts:
+        - Smaller shifts (1-3 days) didn’t offer enough change, especially in situations where the local optima was stuck, so I extended shifts up to 10 days.
+        - Larger shifts sometimes disrupted shift patterns, but careful capping solved this.
+
+    - Strengths and Reason for Inclusion:
+        - Broad Exploration: Larger shifts explore wider areas of the search space, helping to escape deep local minima.
+        - Complements Smaller Changes: Pairs well with neighborhoods focused on finer adjustments like neighborhood 6, balancing the search strategy.
+        - Strong for Escaping Stuck Points: Its nature is very different from the other neighborhoods. Cyclic shifts introduce broad variations that can reveal new, viable solutions that other Neighborhoods might not be able to produce.
+
+Neighborhood 5: Block Shifts Swap Neighborhood
+
+- Implementation Process: Swaps blocks of consecutive days between two nurses, creating structural changes that help balance workloads.
+
+    - Development Process:
+        1. Identified pairs of nurses and selected blocks of 1-5 consecutive days.
+        2. Swapped these blocks and checked for feasibility.
+
+    - Challenges and Failed Attempts:
+        - Single-day swaps didn’t add much value, so I expanded to block swaps of multiple days.
+        - Larger blocks often became infeasible, so I capped swaps at 5 days.
+
+    - Strengths and Reason for Inclusion:
+        - Balances Workload: Swapping blocks between nurses helps even out shifts and manage workload better.
+        - Controlled or Major Adjustments: The randomness in selecting blocks of 1-5 days allows for either precise, small changes or larger, impactful adjustments, offering flexibility in how significantly each swap alters the roster.
+        - Broadens Solution Diversity: By enabling both minor and major structural changes, this neighborhood adds variety to the search, capturing configurations that smaller or single-day changes might miss.
+        - Effective in Late-Stage Optimization: This neighborhood balances exploration and refinement, making it especially useful in late-stage optimization. When the search hones in on promising solutions, block swaps introduce the structural variety needed to enhance near-optimal configurations and achieve better solutions.
+
+Neighborhood 6: One Shift Change Neighborhood
+
+- Implementation Process: Allows single shift changes for fine-tuning, helping to make small, precise adjustments around promising configurations.
+
+    - Development Process:
+        1. For each nurse, single shifts were modified day-by-day, with each change immediately checked for feasibility to ensure only valid configurations were retained.
+        2. Larger random multi-shift changes (1-3 shifts) were tested initially but were scaled back to single-shift changes for more controlled, precise exploration.
+
+    - Challenges and Failed Attempts:
+        - Multi-shift changes introduced too much variability, leading to constraints violations more frequently, so switching to single shifts provided a more stable method of exploring improvements.
+
+    - Strengths and Reason for Inclusion:
+        - Perfect for Fine-Tuning: Great for exploring minor adjustments close to optimal solutions. By changing only a single shift, the algorithm can fine-tune without introducing drastic disruptions.
+        - Minimal Disruption: Single shifts keep the core structure while allowing small refinements, allowing the algorithm to explore variations without risking feasibility.
+        - Complements Larger Neighborhoods: Works well alongside neighborhoods making broader changes, ensuring balanced search.
+
+Neighborhood 7: Double Swap Neighborhood
+
+- Implementation Process: Swaps two pairs of nurse schedules, creating substantial adjustments that help find unique configurations.
+
+    - Development Process:
+        1. Selected two unique pairs of nurses for swapping.
+        2. Swapped both pairs and checked the feasibility of each new configuration.
+
+    - Strengths and Reason for Inclusion:
+        - Major Structural Changes: Double swaps provide substantial variations, revealing unique solutions.
+        - Diverse Configurations: Unlike neighborhoods that make small adjustments, the Double Swap Neighborhood simultaneously swaps two nurse pairs, creating large structural changes that uncover unique configurations beyond the reach of smaller moves—ideal for breaking out of local optima.
+        - Synergy with Shake Function: The shake function in VNS works on the set of rosters generated by the neighborhood, randomly selecting a subset, and getting the solution with the lowest cost. Double Swap’s broad variations produce a large pool of feasible rosters that always maintain all constraints. This expansive result set enhances the shake phase, giving it more diverse options to explore, which is especially valuable in later optimization stages for uncovering new potential solutions.
+
+By testing each neighborhood thoroughly, I developed a set of strategies that collectively improve the VNS’s ability to find feasible, balanced solutions to the nurse rostering problem.
+
+Throughout testing, the VNS frequently achieved roster costs close to, or even below, 102 across multiple rosters, demonstrating the effectiveness of the selected neighborhoods in consistently producing optimized solutions. In one instance, I achieved a solution with a cost below 99. The test roster, along with the optimized VNS version, have been saved in the `Rosters/4.2` folder as a record of this successful outcome.
+
+
+=== PART 3
+
+
+The destroy methods designed for this nurse rostering optimization problem are intentionally varied to introduce 
+controlled yet extensive destruction into the roster, creating randomness in the search space while preserving 
+enough structure to allow feasible repairs. Each method approaches destruction in a unique way, enabling the 
+algorithm to explore a broad range of configurations and escape local optima effectively. 
+
+The aim of these methods is to maximize randomness in shift disruption, but with a balance that prevents excessive 
+damage to the roster. If the destruction is too extensive, the MILP solver used in the repair phase may struggle 
+to reconstruct a viable schedule or could take too long to solve, potentially causing the optimization process 
+to stagnate. Therefore, I sought to implement methods that allow as much randomness as possible without exceeding 
+the model's ability to repair efficiently. This approach creates a flexible framework for optimization, increasing 
+the chances of discovering improved solutions without compromising the feasibility of the repaired roster.
+
+
+--- Destroy Method 1: destroy_increased_random_shifts ---
+
+The `destroy_increased_random_shifts` function is designed as a flexible, multi-stage destruction approach that dynamically adjusts the degree of randomness. This method disrupts the roster through three phases of destruction: weighted random destruction, 
+multiplicative destruction, and contiguous block removal. Each phase introduces different levels of variability, making the roster less predictable and giving the algorithm room to explore novel configurations.
+
+Key Implementation Aspects:
+1. **Weighted Random Destruction (First Pass)**:
+   - In this initial phase, the function assigns specific weights to each shift type ('A', 'P', 'N', 'F'), making some shifts more likely to be destroyed than others. By introducing a slight random variation to these weights, the function ensures that destruction patterns vary across iterations.
+   - This weighting mechanism adds controlled randomness while respecting the `avoid_shifts` parameter, which protects critical shifts from being destroyed, preserving parts of the schedule's core structure.
+
+2. **Multiplicative Destruction Factor (Second Pass)**:
+   - In this pass, a defined number of shifts are destroyed based on a `mult_factor`, which scales the overall destruction count beyond the initial rate.
+   - This stage increases the total number of destroyed shifts, providing controlled randomness while balancing the extent of disruption.
+
+3. **Contiguous Block Destruction (Third Pass)**:
+   - The final phase introduces a larger block destruction for each nurse, with block lengths dynamically adjusted based on how much of the schedule has already been destroyed. This dynamic calculation prevents excessive roster damage and maintains feasibility.
+   - This contiguous block removal helps the algorithm break repetitive patterns, giving it a chance to make significant changes to the roster structure.
+
+Purpose and Benefits:
+By combining weighted destruction, targeted shifts, and adaptive block removal, `destroy_increased_random_shifts` delivers a highly adaptable approach. This multi-stage destruction not only prevents the search from getting stuck in local optima but also allows for a balanced exploration of the solution space. 
+In the main `large_neighbourhood_search` (LNS) function, parameters such as destruction rate and block length can be adjusted when specific thresholds (like cost values) are reached, letting the algorithm intensify destruction only when needed. 
+The method's flexibility in destruction makes it particularly valuable in large neighborhood search, enabling fine-tuned control over randomness while maintaining the feasibility of the roster for repair.
+
+
+--- Destroy Method 2: destroy_consecutive_work_off_blocks_with_dict ---
+
+The `destroy_consecutive_work_off_blocks_with_dict` function targets specific blocks of shifts, focusing on work-off sequences where a block of consecutive workdays ('A', 'P', 'N') is followed 
+immediately by an off-duty ('F') block. By honing in on this structure, the method introduces meaningful disruption without dismantling the entire roster’s continuity, keeping the structural integrity of the schedule in mind.
+
+Key Implementation Aspects:
+1. **Use of Dictionary Conversion**: The function leverages `convert_string_to_dict` to break down the roster into a dictionary format, allowing precise targeting and manipulation of blocks. 
+This approach enables easy modification of specific shift patterns, and after alterations, `convert_dict_to_string` reverts the roster back to its string format for compatibility with other functions.
+
+2. **Selective Block Targeting**: Unlike fully random approaches, this function specifically seeks out work-off sequences (work blocks directly followed by off-duty blocks). 
+This selective targeting helps maintain a recognizable structure in the roster, allowing for controlled variation rather than wholesale randomness.
+
+3. **Controlled Destruction Limits**: The function defines minimum and maximum block lengths to prevent excessive disruption. The block length calculation is adaptive, 
+taking into account already-destroyed sections, thus ensuring the method remains balanced and doesn’t damage the roster too heavily.
+
+4. **One-time Targeted Destruction**: Only one work-off block combination per nurse is processed, which prevents over-destruction and maintains a structured schedule, minimizing the complexity of subsequent repairs.
+
+5. **Random Additional Block Destruction**: To add further variability, an additional minor random destruction pass is included, which diversifies the solution space without overwhelming the search with randomness.
+
+Purpose and Benefits:
+The primary advantage of `destroy_consecutive_work_off_blocks_with_dict` is its balance between controlled destruction and flexibility. By targeting specific work-off patterns, the method can introduce valuable changes without risking the entire roster’s feasibility. 
+This selective approach reduces computational load while preserving the flexibility to explore alternative configurations, ensuring that the algorithm remains efficient and focused.
+
+
+--- Destroy Method 3: destroy_every_few_days_with_comparison ---
+
+The `destroy_every_few_days_with_comparison` function introduces a selective randomness into the roster by destroying blocks of shifts at specified intervals, guided by comparison data from previous solutions. This approach combines controlled destruction intervals with targeted randomness, making it distinct from fully randomized methods. By considering differences from prior best solutions (`compared_indices`), it aligns destruction with areas that show potential for improvement.
+
+Key Implementation Aspects:
+1. **Comparison-Based Destruction**: Using `compared_indices`, which records differences between the best and second-best solutions, this function prioritizes destruction on parts of the roster that are less promising, while preserving areas likely contributing to good solutions. 
+This approach reduces unnecessary disruptions and focuses the algorithm’s efforts on critical sections for improvement.
+
+2. **Controlled Skip and Destroy Blocks**: The function strategically skips a specified number of consecutive workdays (based on randomized `rand_min` and `rand_max` parameters) before destroying a controlled range of days (set by `min_num` and `max_num`). This method achieves a structured, alternating 
+pattern that maintains roster stability while introducing variability in intervals.
+
+3. **Additional Randomized Destruction**: An additional small block of destruction is applied to random days, further enhancing the search space exploration. This feature adds subtle, unpredictable changes without overwhelming the roster with excessive randomness.
+
+Purpose and Benefits:
+The `destroy_every_few_days_with_comparison` method excels at balancing targeted change with controlled randomness. By focusing on shifts identified by `compared_indices` and alternating between workdays and destruction intervals, it introduces meaningful changes to specific areas without disrupting the roster extensively. 
+This focused randomness makes the repair phase more efficient and allows the search process to hone in on impactful changes, enhancing the algorithm's ability to improve upon previous solutions.
+
